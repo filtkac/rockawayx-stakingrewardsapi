@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import cz.rockawayx.stakingrewardsapi.client.CosmosDirectoryClient
+import cz.rockawayx.stakingrewardsapi.exception.ErrorLoadingNonCosmosAssets
 import cz.rockawayx.stakingrewardsapi.exception.NoAssetDirectoryDefined
 import cz.rockawayx.stakingrewardsapi.model.NodeYaml
 import cz.rockawayx.stakingrewardsapi.model.ProviderResponse
@@ -33,14 +34,13 @@ class StakingRewardsService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun getProvider(): ProviderResponse {
-
         rockawayxAssetsDirectory ?: throw NoAssetDirectoryDefined("No asset directory defined in application properties.")
         val cacheDirectory = "$rockawayxAssetsDirectory/cached"
         Files.createDirectories(Path.of(cacheDirectory))
 
         val cosmosAssets = loadAndSaveRemoteCosmosAssets(cacheDirectory)
             ?: loadCachedCosmosAssets(cacheDirectory)
-        val nonCosmosAssets = (loadAndSaveNonCosmosAssets(cacheDirectory)
+        val nonCosmosAssets = (loadAndSaveNonCosmosAssets(cacheDirectory, false)
             ?: loadCachedNonCosmosAssets(cacheDirectory))?.mapToApiModel()
 
         return ProviderResponse(
@@ -49,6 +49,15 @@ class StakingRewardsService(
             users = (cosmosAssets?.users ?: 0) + (nonCosmosAssets?.users ?: 0),
             supportedAssets = (cosmosAssets?.supportedAssets ?: emptyList()) + (nonCosmosAssets?.supportedAssets ?: emptyList())
         )
+    }
+
+    fun checkNonCosmosAssets(): ProviderYaml {
+        rockawayxAssetsDirectory ?: throw NoAssetDirectoryDefined("No asset directory defined in application properties.")
+        val cacheDirectory = "$rockawayxAssetsDirectory/cached"
+        Files.createDirectories(Path.of(cacheDirectory))
+
+        return loadAndSaveNonCosmosAssets(cacheDirectory, true)
+            ?: throw ErrorLoadingNonCosmosAssets("Error loading non-cosmos assets.")
     }
 
     private fun loadAndSaveRemoteCosmosAssets(cacheDirectory: String): ProviderResponse? {
@@ -88,11 +97,13 @@ class StakingRewardsService(
         return null
     }
 
-    private fun loadAndSaveNonCosmosAssets(cacheDirectory: String): ProviderYaml? {
+    private fun loadAndSaveNonCosmosAssets(cacheDirectory: String, shouldThrow: Boolean): ProviderYaml? {
         val nonCosmosAssetsFile = File("$rockawayxAssetsDirectory/$NON_COSMOS_ASSETS_FILE_NAME")
         if (!nonCosmosAssetsFile.exists()) {
-            logger.error("No custom non-cosmos assets defined!")
-            return null
+            logger.error("No file describing non-cosmos assets found.")
+            if (shouldThrow) {
+                throw ErrorLoadingNonCosmosAssets("No file describing non-cosmos assets found. Path: ${nonCosmosAssetsFile.absolutePath}")
+            }
         }
 
         try {
@@ -109,6 +120,9 @@ class StakingRewardsService(
             return nonCosmosAssets
         } catch (e: Exception) {
             logger.error("Error parsing non-cosmos assets yaml. Using cached non-cosmos assets instead.", e)
+            if (shouldThrow) {
+                throw ErrorLoadingNonCosmosAssets("Error parsing non-cosmos assets yaml. Detail: ${e.message}")
+            }
         }
 
         return null
@@ -133,5 +147,9 @@ class StakingRewardsService(
 
     companion object {
         private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule.Builder().build())
+        private const val DEFAULT_PROVIDER_NAME = "RockawayX Infra"
+        private const val NON_COSMOS_ASSETS_FILE_NAME = "non-cosmos-assets.yml"
+        private const val CACHED_COSMOS_ASSETS_FILE_NAME = "cosmos-assets-cached.yml"
+        private const val CACHED_NON_COSMOS_ASSETS_FILE_NAME = "non-cosmos-assets-cached.yml"
     }
 }

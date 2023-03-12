@@ -15,9 +15,3 @@ server:
 app:
   rockawayx-validators-cosmos-url: https://validators.cosmos.directory/RockawayXInfra/staking-rewards
   rockawayx-assets-directory: ./rockawayx-assets
-spring:
-  cloud:
-    openfeign:
-      autoconfiguration:
-        jackson:
-          enabled:
