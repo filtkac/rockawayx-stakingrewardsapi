@@ -1,0 +1,32 @@
+name: RockawayX Infra # validovat, jestli je stejny ako v cosmos directory?
+supportedAssets:
+
+  - name: Agoric
+    slug: agoric
+    # balanceTokenTotal: 19337190.305217 | predpokladam, ze toto sa tiez vypocita z nodov?
+    # balanceUsdTotal: 6483585.874626514 | predpokladam, ze toto sa tiez vypocita z nodov?
+    # usersTotal: 1268 | predpokladam, ze toto sa tiez vypocita z nodov?
+    # feeTotal: 0.06 | predpokladam, ze toto sa tiez vypocita z nodov?
+    nodes:
+      - address: agoricvaloper1thl5syhmscgnj7whdyrydw3w6vy80044srysxn
+        fee: 0.06
+        users: 1268 # vsimol som si, ze v cosmos directory u niektorych assetov users nie su, no v popise API nie je uvedene, ze by to bolo optional? brat to vtedy ako 0? v yamli bude optional alebo nie? (radsej by som to tam vzdy mal)
+        # slashes: [] toto si vravel, ze vobec nebude, ze?
+        balanceUsd: 6483585.874626514
+        balanceToken: 19337190.305217
+
+  - name: Axelar
+    slug: axelar
+    nodes:
+      - address: axelarvaloper1thl5syhmscgnj7whdyrydw3w6vy80044kf4tn2
+        fee: 0.08
+        users: 85
+        balanceUsd: 12045721.694417302
+        balanceToken: 18962294.440921
+
+      # v pripade, ze bude viac nodov
+      - address: cosmosvaloper1thl5syhmscgnj7whdyrydw3w6vy80044hjpnxh
+        fee: 0.08
+        users: 5
+        balanceUsd: 3364628.0705562397
+        balanceToken: 312697.776074
